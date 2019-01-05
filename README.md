@@ -14,7 +14,7 @@ var synth = new Synth(scheduler.ctx, { })
 scheduler.register(synth) // synth gets assigned instrument id 0
 scheduler.load(track)
 scheduler.start()
-;```
+```
 
 ## Instruments
 
@@ -38,5 +38,5 @@ var track = {
   24: [[0, 'C4']],
   28: [[0, 'C3']]
 }
-;```
+```
 
