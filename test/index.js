@@ -1,24 +1,7 @@
-var { Scheduler, Synth, generateArp } = require('../src')
-
 var choo = require('choo')
 var html = require('choo/html')
-
-const keyMaps = {
-  0: {
-    'a': 'C',
-    's': 'D',
-    'd': 'E',
-    'f': 'F',
-    'g': 'G',
-    'h': 'A',
-    'j': 'B'
-  },
-  1: {
-    'k': 'C'
-  }
-}
-
-const keys = Object.keys(keyMaps[0]).concat(Object.keys(keyMaps[1]))
+var { Scheduler, Synth, RingMod, generateArp } = require('../src')
+var keyMaps = require('./key-maps')
 
 var app = choo()
 
@@ -26,48 +9,63 @@ app.route('/', function (state, emit) {
   return html`
     <body onkeypress=${e => emit('keypress', e)}>
       <h1>noise</h1>
-      <pre>${JSON.stringify(state.scheduler, null, 2)}</pre>
+      <p>octave: ${state.octave}</p>
+      <button onclick=${e => emit('scheduler:start')}>start</button>
+      <button onclick=${e => emit('scheduler:stop')}>stop</button>
     </body>`
 })
 
 app.use(function (state, emitter) {
+  var ctx = new AudioContext()
+  var bFlatMinor = ['Bb3', 'C4', 'Db4', 'Eb4', 'F4', 'Gb4', 'Ab4', 'Bb4']
+  var track = generateArp(bFlatMinor)
+  var scheduler = new Scheduler(ctx)
+
+  var ringMod = new RingMod(ctx, {
+    frequency: 600,
+    output: ctx.destination
+  })
+
+  var synth = new Synth(ctx, {
+    output: ringMod.node,
+    attack: 2.75,
+    decay: 5,
+    type: 'square'
+  })
+
   emitter.on('DOMContentLoaded', e => {
-    var scheduler = new Scheduler()
-    var synth = new Synth(scheduler.ctx)
-    var octave = 4
-    var bFlatMinor = ['Bb3', 'C4', 'Db4', 'Eb4', 'F4', 'Gb4', 'Ab4', 'Bb4']
-    var track = generateArp(bFlatMinor)
+    state.octave = 4
+    state.scheduler = scheduler
+    state.ringMod = ringMod
+    scheduler.loop = true
+
+    emitter.on('keypress', handleKeyPress)
 
     scheduler.register(synth)
     scheduler.load(track)
 
-    scheduler.loop = true
-    scheduler.start()
-
-    state.scheduler = scheduler
-
-    render()
-
-    function render () {
-      requestAnimationFrame(() => {
-        emitter.emit('render')
-        render()
-      })
-    }
-
-    emitter.on('keypress', e => {
-      if (e.key === 'z') return octave--
-      if (e.key === 'x') return octave++
-
-      if (Object.keys(keyMaps[0]).includes(e.key)) {
-        synth.playNote(keyMaps[0][e.key] + octave)
-      }
-
-      if (Object.keys(keyMaps[1]).includes(e.key)) {
-        synth.playNote(keyMaps[0][e.key] + (octave + 1))
-      }
-    })
+    emitter.on('scheduler:start', e => scheduler.start())
+    emitter.on('scheduler:stop', e => scheduler.stop())
+    emitter.emit('render')
   })
+
+  function incrementOctave () {
+    state.octave++
+    emitter.emit('render')
+  }
+
+  function decrementOctave () {
+    state.octave--
+    emitter.emit('render')
+  }
+
+  function handleKeyPress (e) {
+    if (e.key === 'z' && state.octave > 1) return decrementOctave()
+    if (e.key === 'x' && state.octave < 6) return incrementOctave()
+
+    if (keyMaps.isLow(e.key)) synth.playNote(keyMaps[0][e.key] + state.octave)
+    if (keyMaps.isHigh(e.key)) synth.playNote(keyMaps[0][e.key] + (state.octave + 1))
+  }
 })
 
 app.mount('body')

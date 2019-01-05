@@ -13,8 +13,8 @@ function generateArp (notes, instrument = 0) {
 }
 
 class Scheduler {
-  constructor () {
-    this.ctx = new AudioContext()
+  constructor (ctx) {
+    this.ctx = ctx
 
     this.loop = false
     this.scheduleAheadTime = 0.1
@@ -44,6 +44,7 @@ class Scheduler {
 
     this.ctx.resume().then(() => {
       this.currentBeat = 0
+      this.nextNoteTime = 0.0
       this.startTime = this.ctx.currentTime + 0.005
 
       this.schedule()
@@ -51,6 +52,7 @@ class Scheduler {
   }
 
   stop () {
+    this.ctx.suspend()
     cancelAnimationFrame(this.timer)
   }
 
@@ -100,7 +102,9 @@ class Synth {
     this.ctx = ctx
 
     this.type = options.type || 'sine'
+    this.attack = options.attack || 0
     this.decay = options.decay || 2
+    this.output = options.output || this.ctx.destination
   }
 
   playNote (note, time) {
@@ -114,16 +118,44 @@ class Synth {
     osc.frequency.value = notes[note]
 
     osc.connect(node)
-    node.connect(this.ctx.destination)
+    node.connect(this.output)
 
+    node.gain.exponentialRampToValueAtTime(0.00001, time)
     osc.start(time)
+    node.gain.exponentialRampToValueAtTime(1, time + this.attack)
     node.gain.exponentialRampToValueAtTime(0.00001, endTime)
     osc.stop(endTime + 1)
+  }
+}
+
+class RingMod {
+  constructor (ctx, options = {}) {
+    var carrier = ctx.createOscillator()
+    var node = ctx.createGain()
+    var frequency = options.frequency || 2500
+
+    this.ctx = ctx
+    this.carrier = carrier
+    this.node = node
+    this.output = options.output || ctx.destination
+
+    carrier.type = options.type || 'square'
+
+    carrier.connect(node.gain)
+    carrier.frequency.setValueAtTime(frequency, 0)
+    carrier.start(0)
+
+    node.connect(this.output)
+  }
+
+  setFrequency (value) {
+    this.carrier.frequency.setValueAtTime(value, this.ctx.currentTime)
   }
 }
 
 module.exports = {
   generateArp,
   Scheduler,
-  Synth
+  Synth,
+  RingMod
 }
