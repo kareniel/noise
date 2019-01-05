@@ -1,9 +1,22 @@
 const notes = require('./notes')
 
+function generateArp (notes, instrument = 0) {
+  var track = {
+    duration: notes.length * 4
+  }
+
+  notes.forEach((note, index) => {
+    track[index * 4] = [[ instrument, [ note ] ]]
+  })
+
+  return track
+}
+
 class Scheduler {
   constructor () {
     this.ctx = new AudioContext()
 
+    this.loop = false
     this.scheduleAheadTime = 0.1
     this.currentBeat = 0
     this.startTime = 0.0
@@ -55,7 +68,7 @@ class Scheduler {
   }
 
   scheduleNote (beat, time) {
-    var actions = song[beat]
+    var actions = this.track[beat]
 
     if (!actions) return
 
@@ -75,6 +88,10 @@ class Scheduler {
   nextNote () {
     this.nextNoteTime += 0.25 * this.secondsPerBeat
     this.currentBeat++
+
+    if (this.loop && this.currentBeat >= this.track.duration) {
+      this.currentBeat = 0
+    }
   }
 }
 
@@ -106,6 +123,7 @@ class Synth {
 }
 
 module.exports = {
+  generateArp,
   Scheduler,
   Synth
 }
