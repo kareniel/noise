@@ -5,7 +5,11 @@
   "main": "src",
   "scripts": {
     "start": "budo test/index.js:bundle.js --dir test --live --port 8080",
-    "test": "standard --fix"
+    "test": "standard --fix",
+    "build": "run-s build:*",
+    "build:0": "rm -rf dist && mkdir dist",
+    "build:1": "browserify src/index.js -p [ tinyify --no-flat ]  > dist/bundle.js",
+    "build:2": "du -sh dist | awk '{print $1}'"
   },
   "repository": {
     "type": "git",
@@ -24,7 +28,9 @@
   "homepage": "https://github.com/kareniel/noise#readme",
   "devDependencies": {
     "budo": "^11.5.0",
+    "npm-run-all": "^4.1.5",
     "standard": "^12.0.1",
-    "tape": "^4.9.2"
+    "tape": "^4.9.2",
+    "tinyify": "^2.5.0"
   }
 }

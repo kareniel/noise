@@ -1,5 +1,4 @@
 const notes = require('./notes')
-const AudioContext = window.AudioContext || webkitAudioContext
 
 class Scheduler {
   constructor () {
@@ -7,15 +6,19 @@ class Scheduler {
 
     this.scheduleAheadTime = 0.1
     this.currentBeat = 0
-    this.currentBar = 0
     this.startTime = 0.0
     this.nextNoteTime = 0.0
 
     this.instruments = []
+    this.track = null
 
     this.setBPM(60)
 
     this.schedule = this.schedule.bind(this)
+  }
+
+  load (track) {
+    this.track = track
   }
 
   setBPM (bpm) {
@@ -24,6 +27,8 @@ class Scheduler {
   }
 
   start () {
+    if (!this.track) throw new Error('Scheduler: No track loaded.')
+
     this.ctx.resume().then(() => {
       this.currentBeat = 0
       this.startTime = this.ctx.currentTime + 0.005
@@ -50,19 +55,26 @@ class Scheduler {
   }
 
   scheduleNote (beat, time) {
-    this.instruments.forEach(instrument => {
-      instrument.playNote('C4', time)
+    var actions = song[beat]
+
+    if (!actions) return
+
+    var id, note, instrument
+
+    actions.forEach(action => {
+      id = action[0]
+      note = action[1]
+      instrument = this.instruments[id]
+
+      if (!instrument) return
+
+      instrument.playNote(note, time)
     })
   }
 
   nextNote () {
     this.nextNoteTime += 0.25 * this.secondsPerBeat
     this.currentBeat++
-
-    if (this.currentBeat === 16) {
-      this.currentBar++
-      this.currentBeat = 0
-    }
   }
 }
 
@@ -75,6 +87,8 @@ class Synth {
   }
 
   playNote (note, time) {
+    time = time || this.ctx.currentTime
+
     var osc = this.ctx.createOscillator()
     var node = this.ctx.createGain()
     var endTime = time + this.decay
