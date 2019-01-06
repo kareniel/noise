@@ -22,14 +22,14 @@ app.use(function (state, emitter) {
   var scheduler = new Scheduler(ctx)
 
   var ringMod = new RingMod(ctx, {
-    frequency: 600,
+    frequency: 300,
     output: ctx.destination
   })
 
   var synth = new Synth(ctx, {
     output: ringMod.node,
-    attack: 2.75,
-    decay: 5,
+    attack: 0.0,
+    decay: 0.6,
     type: 'square'
   })
 
@@ -64,7 +64,7 @@ app.use(function (state, emitter) {
     if (e.key === 'x' && state.octave < 6) return incrementOctave()
 
     if (keyMaps.isLow(e.key)) synth.playNote(keyMaps[0][e.key] + state.octave)
-    if (keyMaps.isHigh(e.key)) synth.playNote(keyMaps[0][e.key] + (state.octave + 1))
+    if (keyMaps.isHigh(e.key)) synth.playNote(keyMaps[1][e.key] + (state.octave + 1))
   }
 })
 

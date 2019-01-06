@@ -1,6 +1,19 @@
 # noise
 
-A small wrapper around the web audio api to make music and sounds for games.
+A small wrapper around the web audio api to make music and sounds for (small) games.
+
+**What's done**
+
+- synth
+- scheduler
+- ring modulator
+
+**What's missing:**
+
+- reverb
+- delay
+- bitcrusher
+- filter
 
 ## Usage
 
